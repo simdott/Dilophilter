@@ -76,17 +76,17 @@ Load in any LV2-compatible host (Ardour, Carla, Reaper, etc.). Connect stereo in
 
 Each filter operates independently:
 
-- **High-Pass Filter (HPF)** : Use Slope, Cutoff, and Q controls to shape the low end
-- **Low-Pass Filter (LPF)** : Use Slope, Cutoff, and Q controls to shape the high end
+- **High-Pass Filter (HPF)** : use Slope, Cutoff, and Q controls to shape the low end
+- **Low-Pass Filter (LPF)** : use Slope, Cutoff, and Q controls to shape the high end
 
 **Classic modes** : Resonance (Q) shapes the filter's response at the cutoff frequency
-- **Low Q values (<0.707)** : Gentle, broad filter
-- **Q=0.707** : Standard flat response
-- **High Q values (>0.707)** : Resonant peak, more pronounced as Q increases
+- **Low Q values (<0.707)** : gentle, broad filter
+- **Q=0.707** : standard flat response
+- **High Q values (>0.707)** : resonant peak, more pronounced as Q increases
 
-**Butterworth modes** : Provide flat passband response. **Q control has no effect in these modes**.
+**Butterworth modes** : provide flat passband response. **Q control has no effect in these modes**.
 
-**To bypass a filter** : Set its Slope control to "Off".
+**To bypass a filter** : set its Slope control to "Off".
 
 **Interface** : this plugin has no custom graphical interface. It uses your host's standard control UI (slider, knob, or numerical entry).
 
