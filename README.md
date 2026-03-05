@@ -112,7 +112,7 @@ If precise logarithmic control in Carla is important to you, please let me know 
    Or uninstall system-wide :
    sudo ./uninstall.sh
    
-### v1.0.0 (2025-03-05)
+### v1.0.0 (2026-03-05)
 
 - Initial release   
 
