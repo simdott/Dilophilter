@@ -1,6 +1,6 @@
 /*
  * Dilophilter LV2 Plugin - Dual filter plugin
- * Copyright (C) 2025 Simon Delaruotte
+ * Copyright (C) 2026 Simon Delaruotte
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
