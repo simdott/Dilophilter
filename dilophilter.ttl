@@ -19,7 +19,7 @@
     doap:name "Dilophilter" ;
     doap:maintainer <urn:simdott:simondelaruotte> ;
     doap:license <http://spdx.org/licenses/GPL-2.0-or-later> ;  
-    doap:description "Dual filter plugin with independent high-pass and low-pass filters." ;
+    doap:description "Dilophilter V1.0.1" ;
     rdfs:label "Dilophilter" ;
     lv2:port [
         a lv2:AudioPort, lv2:InputPort ;
