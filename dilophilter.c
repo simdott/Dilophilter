@@ -62,6 +62,12 @@ typedef struct {
     float hp48_bw_a1[4], hp48_bw_a2[4], hp48_bw_b0[4], hp48_bw_b1[4], hp48_bw_b2[4];
     float hp48_bw_x1[2][4], hp48_bw_x2[2][4], hp48_bw_y1[2][4], hp48_bw_y2[2][4];
     
+    float hp48_lr_a1[4], hp48_lr_a2[4], hp48_lr_b0[4], hp48_lr_b1[4], hp48_lr_b2[4];
+    float hp48_lr_x1[2][4], hp48_lr_x2[2][4], hp48_lr_y1[2][4], hp48_lr_y2[2][4];
+    
+    float hp96_lr_a1[8], hp96_lr_a2[8], hp96_lr_b0[8], hp96_lr_b1[8], hp96_lr_b2[8];
+    float hp96_lr_x1[2][8], hp96_lr_x2[2][8], hp96_lr_y1[2][8], hp96_lr_y2[2][8];
+    
     // Low-pass filters
     float lp12_a1, lp12_a2, lp12_b0, lp12_b1, lp12_b2;
     float lp12_x1[2], lp12_x2[2], lp12_y1[2], lp12_y2[2];
@@ -78,6 +84,12 @@ typedef struct {
     float lp48_bw_a1[4], lp48_bw_a2[4], lp48_bw_b0[4], lp48_bw_b1[4], lp48_bw_b2[4];
     float lp48_bw_x1[2][4], lp48_bw_x2[2][4], lp48_bw_y1[2][4], lp48_bw_y2[2][4];
     
+    float lp48_lr_a1[4], lp48_lr_a2[4], lp48_lr_b0[4], lp48_lr_b1[4], lp48_lr_b2[4];
+    float lp48_lr_x1[2][4], lp48_lr_x2[2][4], lp48_lr_y1[2][4], lp48_lr_y2[2][4];
+    
+    float lp96_lr_a1[8], lp96_lr_a2[8], lp96_lr_b0[8], lp96_lr_b1[8], lp96_lr_b2[8];
+    float lp96_lr_x1[2][8], lp96_lr_x2[2][8], lp96_lr_y1[2][8], lp96_lr_y2[2][8];
+
     float prev_hp_cutoff, prev_hp_resonance;
     float prev_lp_cutoff, prev_lp_resonance;
     float sample_rate;
@@ -268,6 +280,67 @@ static void calculate_hp48_bw_coefficients(Dilophilter* self, float cutoff) {
     }
 }
 
+static void calculate_hp48_lr_coefficients(Dilophilter* self, float cutoff) {
+    if (cutoff < 20.0f) cutoff = 20.0f;
+    if (cutoff > 20000.0f) cutoff = 20000.0f;
+
+    const float omega = 2.0f * M_PI * cutoff / self->sample_rate;
+    const float sin_omega = sinf(omega);
+    const float cos_omega = cosf(omega);
+    
+    const float Q_values[4] = {0.5412f, 1.3066f, 0.5412f, 1.3066f};
+
+    for (int i = 0; i < 4; ++i) {
+        const float alpha = sin_omega / (2.0f * Q_values[i]);
+        const float a0 = 1.0f + alpha;
+        
+        const float b0 = (1.0f + cos_omega) / 2.0f;
+        const float b1 = -(1.0f + cos_omega);
+        const float b2 = (1.0f + cos_omega) / 2.0f;
+        const float a1 = -2.0f * cos_omega;
+        const float a2 = 1.0f - alpha;
+
+        self->hp48_lr_b0[i] = b0 / a0;
+        self->hp48_lr_b1[i] = b1 / a0;
+        self->hp48_lr_b2[i] = b2 / a0;
+        self->hp48_lr_a1[i] = a1 / a0;
+        self->hp48_lr_a2[i] = a2 / a0;
+    }
+}
+
+static void calculate_hp96_lr_coefficients(Dilophilter* self, float cutoff) {
+    if (cutoff < 20.0f) cutoff = 20.0f;
+    if (cutoff > 20000.0f) cutoff = 20000.0f;
+
+    const float omega = 2.0f * M_PI * cutoff / self->sample_rate;
+    const float sin_omega = sinf(omega);
+    const float cos_omega = cosf(omega);
+    
+    // LR96 uses 8 sections with Q values that sum to -6dB at cutoff
+    // These Q values are derived from the LR96 polynomial
+    const float Q_values[8] = {
+        0.5098f, 0.6013f, 0.8999f, 2.5628f,
+        0.5098f, 0.6013f, 0.8999f, 2.5628f
+    };
+
+    for (int i = 0; i < 8; ++i) {
+        const float alpha = sin_omega / (2.0f * Q_values[i]);
+        const float a0 = 1.0f + alpha;
+        
+        const float b0 = (1.0f + cos_omega) / 2.0f;
+        const float b1 = -(1.0f + cos_omega);
+        const float b2 = (1.0f + cos_omega) / 2.0f;
+        const float a1 = -2.0f * cos_omega;
+        const float a2 = 1.0f - alpha;
+
+        self->hp96_lr_b0[i] = b0 / a0;
+        self->hp96_lr_b1[i] = b1 / a0;
+        self->hp96_lr_b2[i] = b2 / a0;
+        self->hp96_lr_a1[i] = a1 / a0;
+        self->hp96_lr_a2[i] = a2 / a0;
+    }
+}
+
 // Low-pass coefficient calculations
 static void calculate_lp12_coefficients(Dilophilter* self, float cutoff, float resonance) {
     if (cutoff < 20.0f) cutoff = 20.0f;
@@ -413,6 +486,67 @@ static void calculate_lp48_bw_coefficients(Dilophilter* self, float cutoff) {
     }
 }
 
+static void calculate_lp48_lr_coefficients(Dilophilter* self, float cutoff) {
+    if (cutoff < 20.0f) cutoff = 20.0f;
+    if (cutoff > 20000.0f) cutoff = 20000.0f;
+
+    const float omega = 2.0f * M_PI * cutoff / self->sample_rate;
+    const float sin_omega = sinf(omega);
+    const float cos_omega = cosf(omega);
+    
+    // LR48 Q values from cascaded Butterworth 24dB sections
+    const float Q_values[4] = {0.5412f, 1.3066f, 0.5412f, 1.3066f};
+
+    for (int i = 0; i < 4; ++i) {
+        const float alpha = sin_omega / (2.0f * Q_values[i]);
+        const float a0 = 1.0f + alpha;
+        
+        const float b0 = (1.0f - cos_omega) / 2.0f;
+        const float b1 = 1.0f - cos_omega;
+        const float b2 = (1.0f - cos_omega) / 2.0f;
+        const float a1 = -2.0f * cos_omega;
+        const float a2 = 1.0f - alpha;
+
+        self->lp48_lr_b0[i] = b0 / a0;
+        self->lp48_lr_b1[i] = b1 / a0;
+        self->lp48_lr_b2[i] = b2 / a0;
+        self->lp48_lr_a1[i] = a1 / a0;
+        self->lp48_lr_a2[i] = a2 / a0;
+    }
+}
+
+static void calculate_lp96_lr_coefficients(Dilophilter* self, float cutoff) {
+    if (cutoff < 20.0f) cutoff = 20.0f;
+    if (cutoff > 20000.0f) cutoff = 20000.0f;
+
+    const float omega = 2.0f * M_PI * cutoff / self->sample_rate;
+    const float sin_omega = sinf(omega);
+    const float cos_omega = cosf(omega);
+    
+    // LR96 uses 8 sections with Q values that sum to -6dB at cutoff
+    const float Q_values[8] = {
+        0.5098f, 0.6013f, 0.8999f, 2.5628f,
+        0.5098f, 0.6013f, 0.8999f, 2.5628f
+    };
+
+    for (int i = 0; i < 8; ++i) {
+        const float alpha = sin_omega / (2.0f * Q_values[i]);
+        const float a0 = 1.0f + alpha;
+        
+        const float b0 = (1.0f - cos_omega) / 2.0f;
+        const float b1 = 1.0f - cos_omega;
+        const float b2 = (1.0f - cos_omega) / 2.0f;
+        const float a1 = -2.0f * cos_omega;
+        const float a2 = 1.0f - alpha;
+
+        self->lp96_lr_b0[i] = b0 / a0;
+        self->lp96_lr_b1[i] = b1 / a0;
+        self->lp96_lr_b2[i] = b2 / a0;
+        self->lp96_lr_a1[i] = a1 / a0;
+        self->lp96_lr_a2[i] = a2 / a0;
+    }
+}
+
 static LV2_Handle instantiate(
     const LV2_Descriptor* descriptor,
     double sample_rate,
@@ -441,6 +575,18 @@ static LV2_Handle instantiate(
         }
     }
     
+    for (int i = 0; i < 4; ++i) {
+        for (int ch = 0; ch < 2; ++ch) {
+        self->hp48_lr_x1[ch][i] = self->hp48_lr_x2[ch][i] = self->hp48_lr_y1[ch][i] = self->hp48_lr_y2[ch][i] = 0.0f;
+    }
+}
+
+for (int i = 0; i < 8; ++i) {
+    for (int ch = 0; ch < 2; ++ch) {
+        self->hp96_lr_x1[ch][i] = self->hp96_lr_x2[ch][i] = self->hp96_lr_y1[ch][i] = self->hp96_lr_y2[ch][i] = 0.0f;
+    }
+}
+    
     // Initialize all low-pass filter states to zero
     for (int ch = 0; ch < 2; ++ch) {
         self->lp12_x1[ch] = self->lp12_x2[ch] = self->lp12_y1[ch] = self->lp12_y2[ch] = 0.0f;
@@ -460,27 +606,42 @@ static LV2_Handle instantiate(
         }
     }
     
-    self->prev_hp_slope = 5.0f;  // Default to "Off"
-    self->prev_lp_slope = 5.0f;  // Default to "Off"
+    for (int i = 0; i < 4; ++i) {
+        for (int ch = 0; ch < 2; ++ch) {
+        self->lp48_lr_x1[ch][i] = self->lp48_lr_x2[ch][i] = self->lp48_lr_y1[ch][i] = self->lp48_lr_y2[ch][i] = 0.0f;
+    }
+}
+    for (int i = 0; i < 8; ++i) {
+        for (int ch = 0; ch < 2; ++ch) {
+        self->lp96_lr_x1[ch][i] = self->lp96_lr_x2[ch][i] = self->lp96_lr_y1[ch][i] = self->lp96_lr_y2[ch][i] = 0.0f;
+    }
+}
+    
+    self->prev_hp_slope = 7.0f;  // Default to "Off"
+    self->prev_lp_slope = 7.0f;  // Default to "Off"
 
     self->sample_rate = (float)sample_rate;
     self->prev_hp_cutoff = 0.0f;
-    self->prev_hp_resonance = 0.707f;
+    self->prev_hp_resonance = 0.7071f;
     self->prev_lp_cutoff = 0.0f;
-    self->prev_lp_resonance = 0.707f;
+    self->prev_lp_resonance = 0.7071f;
     
     // Initialize all filters with default values
-    calculate_hp12_coefficients(self, 30.0f, 0.707f);
-    calculate_hp24_coefficients(self, 30.0f, 0.707f);
-    calculate_hp48_coefficients(self, 30.0f, 0.707f);
+    calculate_hp12_coefficients(self, 30.0f, 0.7071f);
+    calculate_hp24_coefficients(self, 30.0f, 0.7071f);
+    calculate_hp48_coefficients(self, 30.0f, 0.7071f);
     calculate_hp24_bw_coefficients(self, 30.0f);
     calculate_hp48_bw_coefficients(self, 30.0f);
-    
-    calculate_lp12_coefficients(self, 10000.0f, 0.707f);
-    calculate_lp24_coefficients(self, 10000.0f, 0.707f);
-    calculate_lp48_coefficients(self, 10000.0f, 0.707f);
+    calculate_hp48_lr_coefficients(self, 30.0f);
+    calculate_hp96_lr_coefficients(self, 30.0f);
+
+    calculate_lp12_coefficients(self, 10000.0f, 0.7071f);
+    calculate_lp24_coefficients(self, 10000.0f, 0.7071f);
+    calculate_lp48_coefficients(self, 10000.0f, 0.7071f);
     calculate_lp24_bw_coefficients(self, 10000.0f);
     calculate_lp48_bw_coefficients(self, 10000.0f);
+    calculate_lp48_lr_coefficients(self, 10000.0f);
+    calculate_lp96_lr_coefficients(self, 10000.0f);
     
     return (LV2_Handle)self;
 }
@@ -540,34 +701,39 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                             (hp_slope_selector != (int)self->prev_hp_slope) ||
                             (lp_slope_selector != (int)self->prev_lp_slope);
     
-    if (hp_slope_selector == 5 && lp_slope_selector == 5 && !parameters_changed) {
-    for (uint32_t i = 0; i < n_samples; i++) {
-        self->output_left[i] = self->input_left[i];
-        self->output_right[i] = self->input_right[i];
+    if (hp_slope_selector == 7 && lp_slope_selector == 7 && !parameters_changed) {
+        for (uint32_t i = 0; i < n_samples; i++) {
+            self->output_left[i] = self->input_left[i];
+            self->output_right[i] = self->input_right[i];
+        }
+        return;
     }
-    return;
-}
+    
     // Update coefficients only if parameters changed AND filter is not off
     if (parameters_changed) {
         // Update HPF coefficients if needed (skip if HPF is off)
-        if (hp_slope_selector != 5) {
+        if (hp_slope_selector != 7) {
             switch (hp_slope_selector) {
                 case 0: calculate_hp12_coefficients(self, current_hp_cutoff, current_hp_resonance); break;
                 case 1: calculate_hp24_coefficients(self, current_hp_cutoff, current_hp_resonance); break;
                 case 2: calculate_hp48_coefficients(self, current_hp_cutoff, current_hp_resonance); break;
                 case 3: calculate_hp24_bw_coefficients(self, current_hp_cutoff); break;
                 case 4: calculate_hp48_bw_coefficients(self, current_hp_cutoff); break;
+                case 5: calculate_hp48_lr_coefficients(self, current_hp_cutoff); break;
+                case 6: calculate_hp96_lr_coefficients(self, current_hp_cutoff); break;
             }
         }
         
         // Update LPF coefficients if needed (skip if LPF is off)
-        if (lp_slope_selector != 5) {
+        if (lp_slope_selector != 7) {
             switch (lp_slope_selector) {
                 case 0: calculate_lp12_coefficients(self, current_lp_cutoff, current_lp_resonance); break;
                 case 1: calculate_lp24_coefficients(self, current_lp_cutoff, current_lp_resonance); break;
                 case 2: calculate_lp48_coefficients(self, current_lp_cutoff, current_lp_resonance); break;
                 case 3: calculate_lp24_bw_coefficients(self, current_lp_cutoff); break;
                 case 4: calculate_lp48_bw_coefficients(self, current_lp_cutoff); break;
+                case 5: calculate_lp48_lr_coefficients(self, current_lp_cutoff); break;
+                case 6: calculate_lp96_lr_coefficients(self, current_lp_cutoff); break;
             }
         }
         
@@ -580,18 +746,86 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         self->prev_lp_slope = (float)lp_slope_selector;
     }
 
-    // Process audio through filters - BOTH CHANNELS TOGETHER in same loop
+    // Process audio through filters
     for (uint32_t i = 0; i < n_samples; i++) {
-        // Load both channels
         float left_signal = self->input_left[i];
         float right_signal = self->input_right[i];
         
-        // Process high-pass filter on both channels (skip if HPF is off)
-        if (hp_slope_selector != 5) {
+        // Process high-pass filter
+        if (hp_slope_selector != 7) {
             switch (hp_slope_selector) {
+                case 6:  // -96dB Linkwitz-Riley HPF
+                    for (int j = 0; j < 8; ++j) {
+                        float x1_left = self->hp96_lr_x1[0][j];
+                        float x2_left = self->hp96_lr_x2[0][j];
+                        float y1_left = self->hp96_lr_y1[0][j];
+                        float y2_left = self->hp96_lr_y2[0][j];
+                        
+                        float x1_right = self->hp96_lr_x1[1][j];
+                        float x2_right = self->hp96_lr_x2[1][j];
+                        float y1_right = self->hp96_lr_y1[1][j];
+                        float y2_right = self->hp96_lr_y2[1][j];
+                        
+                        float temp_out_left = self->hp96_lr_b0[j] * left_signal + self->hp96_lr_b1[j] * x1_left + 
+                                            self->hp96_lr_b2[j] * x2_left - self->hp96_lr_a1[j] * y1_left - 
+                                            self->hp96_lr_a2[j] * y2_left;
+                        
+                        float temp_out_right = self->hp96_lr_b0[j] * right_signal + self->hp96_lr_b1[j] * x1_right + 
+                                             self->hp96_lr_b2[j] * x2_right - self->hp96_lr_a1[j] * y1_right - 
+                                             self->hp96_lr_a2[j] * y2_right;
+                        
+                        self->hp96_lr_x2[0][j] = x1_left;
+                        self->hp96_lr_x1[0][j] = left_signal;
+                        self->hp96_lr_y2[0][j] = y1_left;
+                        self->hp96_lr_y1[0][j] = temp_out_left;
+                        
+                        self->hp96_lr_x2[1][j] = x1_right;
+                        self->hp96_lr_x1[1][j] = right_signal;
+                        self->hp96_lr_y2[1][j] = y1_right;
+                        self->hp96_lr_y1[1][j] = temp_out_right;
+                        
+                        left_signal = temp_out_left;
+                        right_signal = temp_out_right;
+                    }
+                    break;
+                    
+                case 5:  // -48dB Linkwitz-Riley HPF
+                    for (int j = 0; j < 4; ++j) {
+                        float x1_left = self->hp48_lr_x1[0][j];
+                        float x2_left = self->hp48_lr_x2[0][j];
+                        float y1_left = self->hp48_lr_y1[0][j];
+                        float y2_left = self->hp48_lr_y2[0][j];
+                        
+                        float x1_right = self->hp48_lr_x1[1][j];
+                        float x2_right = self->hp48_lr_x2[1][j];
+                        float y1_right = self->hp48_lr_y1[1][j];
+                        float y2_right = self->hp48_lr_y2[1][j];
+                        
+                        float temp_out_left = self->hp48_lr_b0[j] * left_signal + self->hp48_lr_b1[j] * x1_left + 
+                                            self->hp48_lr_b2[j] * x2_left - self->hp48_lr_a1[j] * y1_left - 
+                                            self->hp48_lr_a2[j] * y2_left;
+                        
+                        float temp_out_right = self->hp48_lr_b0[j] * right_signal + self->hp48_lr_b1[j] * x1_right + 
+                                             self->hp48_lr_b2[j] * x2_right - self->hp48_lr_a1[j] * y1_right - 
+                                             self->hp48_lr_a2[j] * y2_right;
+                        
+                        self->hp48_lr_x2[0][j] = x1_left;
+                        self->hp48_lr_x1[0][j] = left_signal;
+                        self->hp48_lr_y2[0][j] = y1_left;
+                        self->hp48_lr_y1[0][j] = temp_out_left;
+                        
+                        self->hp48_lr_x2[1][j] = x1_right;
+                        self->hp48_lr_x1[1][j] = right_signal;
+                        self->hp48_lr_y2[1][j] = y1_right;
+                        self->hp48_lr_y1[1][j] = temp_out_right;
+                        
+                        left_signal = temp_out_left;
+                        right_signal = temp_out_right;
+                    }
+                    break;
+                    
                 case 4:  // -48dB Butterworth HPF
                     for (int j = 0; j < 4; ++j) {
-                        // STATE OPTIMIZATION: Use temporary variables
                         float x1_left = self->hp48_bw_x1[0][j];
                         float x2_left = self->hp48_bw_x2[0][j];
                         float y1_left = self->hp48_bw_y1[0][j];
@@ -602,17 +836,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->hp48_bw_y1[1][j];
                         float y2_right = self->hp48_bw_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->hp48_bw_b0[j] * left_signal + self->hp48_bw_b1[j] * x1_left + 
                                             self->hp48_bw_b2[j] * x2_left - self->hp48_bw_a1[j] * y1_left - 
                                             self->hp48_bw_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->hp48_bw_b0[j] * right_signal + self->hp48_bw_b1[j] * x1_right + 
                                              self->hp48_bw_b2[j] * x2_right - self->hp48_bw_a1[j] * y1_right - 
                                              self->hp48_bw_a2[j] * y2_right;
                         
-                        // Update state variables (minimal memory writes)
                         self->hp48_bw_x2[0][j] = x1_left;
                         self->hp48_bw_x1[0][j] = left_signal;
                         self->hp48_bw_y2[0][j] = y1_left;
@@ -630,7 +861,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 3:  // -24dB Butterworth HPF
                     for (int j = 0; j < 2; ++j) {
-                        // STATE OPTIMIZATION
                         float x1_left = self->hp24_bw_x1[0][j];
                         float x2_left = self->hp24_bw_x2[0][j];
                         float y1_left = self->hp24_bw_y1[0][j];
@@ -641,17 +871,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->hp24_bw_y1[1][j];
                         float y2_right = self->hp24_bw_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->hp24_bw_b0[j] * left_signal + self->hp24_bw_b1[j] * x1_left + 
                                             self->hp24_bw_b2[j] * x2_left - self->hp24_bw_a1[j] * y1_left - 
                                             self->hp24_bw_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->hp24_bw_b0[j] * right_signal + self->hp24_bw_b1[j] * x1_right + 
                                              self->hp24_bw_b2[j] * x2_right - self->hp24_bw_a1[j] * y1_right - 
                                              self->hp24_bw_a2[j] * y2_right;
                         
-                        // Update state variables
                         self->hp24_bw_x2[0][j] = x1_left;
                         self->hp24_bw_x1[0][j] = left_signal;
                         self->hp24_bw_y2[0][j] = y1_left;
@@ -669,7 +896,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 2:  // -48dB variable HPF
                     for (int j = 0; j < 4; ++j) {
-                        // STATE OPTIMIZATION
                         float x1_left = self->hp48_x1[0][j];
                         float x2_left = self->hp48_x2[0][j];
                         float y1_left = self->hp48_y1[0][j];
@@ -680,17 +906,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->hp48_y1[1][j];
                         float y2_right = self->hp48_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->hp48_b0[j] * left_signal + self->hp48_b1[j] * x1_left + 
                                             self->hp48_b2[j] * x2_left - self->hp48_a1[j] * y1_left - 
                                             self->hp48_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->hp48_b0[j] * right_signal + self->hp48_b1[j] * x1_right + 
                                              self->hp48_b2[j] * x2_right - self->hp48_a1[j] * y1_right - 
                                              self->hp48_a2[j] * y2_right;
                         
-                        // Update state variables
                         self->hp48_x2[0][j] = x1_left;
                         self->hp48_x1[0][j] = left_signal;
                         self->hp48_y2[0][j] = y1_left;
@@ -708,7 +931,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 1:  // -24dB variable HPF
                     for (int j = 0; j < 2; ++j) {
-                        // STATE OPTIMIZATION
                         float x1_left = self->hp24_x1[0][j];
                         float x2_left = self->hp24_x2[0][j];
                         float y1_left = self->hp24_y1[0][j];
@@ -719,17 +941,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->hp24_y1[1][j];
                         float y2_right = self->hp24_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->hp24_b0[j] * left_signal + self->hp24_b1[j] * x1_left + 
                                             self->hp24_b2[j] * x2_left - self->hp24_a1[j] * y1_left - 
                                             self->hp24_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->hp24_b0[j] * right_signal + self->hp24_b1[j] * x1_right + 
                                              self->hp24_b2[j] * x2_right - self->hp24_a1[j] * y1_right - 
                                              self->hp24_a2[j] * y2_right;
                         
-                        // Update state variables
                         self->hp24_x2[0][j] = x1_left;
                         self->hp24_x1[0][j] = left_signal;
                         self->hp24_y2[0][j] = y1_left;
@@ -747,7 +966,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 0:  // -12dB variable HPF
                 default:
-                    // STATE OPTIMIZATION
                     float x1_left = self->hp12_x1[0];
                     float x2_left = self->hp12_x2[0];
                     float y1_left = self->hp12_y1[0];
@@ -758,17 +976,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     float y1_right = self->hp12_y1[1];
                     float y2_right = self->hp12_y2[1];
                     
-                    // Process left channel
                     float temp_out_left = self->hp12_b0 * left_signal + self->hp12_b1 * x1_left + 
                                         self->hp12_b2 * x2_left - self->hp12_a1 * y1_left - 
                                         self->hp12_a2 * y2_left;
                     
-                    // Process right channel
                     float temp_out_right = self->hp12_b0 * right_signal + self->hp12_b1 * x1_right + 
                                          self->hp12_b2 * x2_right - self->hp12_a1 * y1_right - 
                                          self->hp12_a2 * y2_right;
                     
-                    // Update state variables
                     self->hp12_x2[0] = x1_left;
                     self->hp12_x1[0] = left_signal;
                     self->hp12_y2[0] = y1_left;
@@ -785,12 +1000,81 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             }
         }
         
-        // Process low-pass filter on both channels (skip if LPF is off)
-        if (lp_slope_selector != 5) {
+        // Process low-pass filter
+        if (lp_slope_selector != 7) {
             switch (lp_slope_selector) {
+                case 6:  // -96dB Linkwitz-Riley LPF
+                    for (int j = 0; j < 8; ++j) {
+                        float x1_left = self->lp96_lr_x1[0][j];
+                        float x2_left = self->lp96_lr_x2[0][j];
+                        float y1_left = self->lp96_lr_y1[0][j];
+                        float y2_left = self->lp96_lr_y2[0][j];
+                        
+                        float x1_right = self->lp96_lr_x1[1][j];
+                        float x2_right = self->lp96_lr_x2[1][j];
+                        float y1_right = self->lp96_lr_y1[1][j];
+                        float y2_right = self->lp96_lr_y2[1][j];
+                        
+                        float temp_out_left = self->lp96_lr_b0[j] * left_signal + self->lp96_lr_b1[j] * x1_left + 
+                                            self->lp96_lr_b2[j] * x2_left - self->lp96_lr_a1[j] * y1_left - 
+                                            self->lp96_lr_a2[j] * y2_left;
+                        
+                        float temp_out_right = self->lp96_lr_b0[j] * right_signal + self->lp96_lr_b1[j] * x1_right + 
+                                             self->lp96_lr_b2[j] * x2_right - self->lp96_lr_a1[j] * y1_right - 
+                                             self->lp96_lr_a2[j] * y2_right;
+                        
+                        self->lp96_lr_x2[0][j] = x1_left;
+                        self->lp96_lr_x1[0][j] = left_signal;
+                        self->lp96_lr_y2[0][j] = y1_left;
+                        self->lp96_lr_y1[0][j] = temp_out_left;
+                        
+                        self->lp96_lr_x2[1][j] = x1_right;
+                        self->lp96_lr_x1[1][j] = right_signal;
+                        self->lp96_lr_y2[1][j] = y1_right;
+                        self->lp96_lr_y1[1][j] = temp_out_right;
+                        
+                        left_signal = temp_out_left;
+                        right_signal = temp_out_right;
+                    }
+                    break;
+                    
+                case 5:  // -48dB Linkwitz-Riley LPF
+                    for (int j = 0; j < 4; ++j) {
+                        float x1_left = self->lp48_lr_x1[0][j];
+                        float x2_left = self->lp48_lr_x2[0][j];
+                        float y1_left = self->lp48_lr_y1[0][j];
+                        float y2_left = self->lp48_lr_y2[0][j];
+                        
+                        float x1_right = self->lp48_lr_x1[1][j];
+                        float x2_right = self->lp48_lr_x2[1][j];
+                        float y1_right = self->lp48_lr_y1[1][j];
+                        float y2_right = self->lp48_lr_y2[1][j];
+                        
+                        float temp_out_left = self->lp48_lr_b0[j] * left_signal + self->lp48_lr_b1[j] * x1_left + 
+                                            self->lp48_lr_b2[j] * x2_left - self->lp48_lr_a1[j] * y1_left - 
+                                            self->lp48_lr_a2[j] * y2_left;
+                        
+                        float temp_out_right = self->lp48_lr_b0[j] * right_signal + self->lp48_lr_b1[j] * x1_right + 
+                                             self->lp48_lr_b2[j] * x2_right - self->lp48_lr_a1[j] * y1_right - 
+                                             self->lp48_lr_a2[j] * y2_right;
+                        
+                        self->lp48_lr_x2[0][j] = x1_left;
+                        self->lp48_lr_x1[0][j] = left_signal;
+                        self->lp48_lr_y2[0][j] = y1_left;
+                        self->lp48_lr_y1[0][j] = temp_out_left;
+                        
+                        self->lp48_lr_x2[1][j] = x1_right;
+                        self->lp48_lr_x1[1][j] = right_signal;
+                        self->lp48_lr_y2[1][j] = y1_right;
+                        self->lp48_lr_y1[1][j] = temp_out_right;
+                        
+                        left_signal = temp_out_left;
+                        right_signal = temp_out_right;
+                    }
+                    break;
+                
                 case 4:  // -48dB Butterworth LPF
                     for (int j = 0; j < 4; ++j) {
-                        // STATE OPTIMIZATION
                         float x1_left = self->lp48_bw_x1[0][j];
                         float x2_left = self->lp48_bw_x2[0][j];
                         float y1_left = self->lp48_bw_y1[0][j];
@@ -801,17 +1085,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->lp48_bw_y1[1][j];
                         float y2_right = self->lp48_bw_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->lp48_bw_b0[j] * left_signal + self->lp48_bw_b1[j] * x1_left + 
                                             self->lp48_bw_b2[j] * x2_left - self->lp48_bw_a1[j] * y1_left - 
                                             self->lp48_bw_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->lp48_bw_b0[j] * right_signal + self->lp48_bw_b1[j] * x1_right + 
                                              self->lp48_bw_b2[j] * x2_right - self->lp48_bw_a1[j] * y1_right - 
                                              self->lp48_bw_a2[j] * y2_right;
                         
-                        // Update state variables
                         self->lp48_bw_x2[0][j] = x1_left;
                         self->lp48_bw_x1[0][j] = left_signal;
                         self->lp48_bw_y2[0][j] = y1_left;
@@ -829,7 +1110,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 3:  // -24dB Butterworth LPF
                     for (int j = 0; j < 2; ++j) {
-                        // STATE OPTIMIZATION
                         float x1_left = self->lp24_bw_x1[0][j];
                         float x2_left = self->lp24_bw_x2[0][j];
                         float y1_left = self->lp24_bw_y1[0][j];
@@ -840,17 +1120,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->lp24_bw_y1[1][j];
                         float y2_right = self->lp24_bw_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->lp24_bw_b0[j] * left_signal + self->lp24_bw_b1[j] * x1_left + 
                                             self->lp24_bw_b2[j] * x2_left - self->lp24_bw_a1[j] * y1_left - 
                                             self->lp24_bw_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->lp24_bw_b0[j] * right_signal + self->lp24_bw_b1[j] * x1_right + 
                                              self->lp24_bw_b2[j] * x2_right - self->lp24_bw_a1[j] * y1_right - 
                                              self->lp24_bw_a2[j] * y2_right;
                         
-                        // Update state variables
                         self->lp24_bw_x2[0][j] = x1_left;
                         self->lp24_bw_x1[0][j] = left_signal;
                         self->lp24_bw_y2[0][j] = y1_left;
@@ -868,7 +1145,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 2:  // -48dB variable LPF
                     for (int j = 0; j < 4; ++j) {
-                        // STATE OPTIMIZATION
                         float x1_left = self->lp48_x1[0][j];
                         float x2_left = self->lp48_x2[0][j];
                         float y1_left = self->lp48_y1[0][j];
@@ -879,17 +1155,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->lp48_y1[1][j];
                         float y2_right = self->lp48_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->lp48_b0[j] * left_signal + self->lp48_b1[j] * x1_left + 
                                             self->lp48_b2[j] * x2_left - self->lp48_a1[j] * y1_left - 
                                             self->lp48_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->lp48_b0[j] * right_signal + self->lp48_b1[j] * x1_right + 
                                              self->lp48_b2[j] * x2_right - self->lp48_a1[j] * y1_right - 
                                              self->lp48_a2[j] * y2_right;
                         
-                        // Update state variables
                         self->lp48_x2[0][j] = x1_left;
                         self->lp48_x1[0][j] = left_signal;
                         self->lp48_y2[0][j] = y1_left;
@@ -907,7 +1180,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 1:  // -24dB variable LPF
                     for (int j = 0; j < 2; ++j) {
-                        // STATE OPTIMIZATION
                         float x1_left = self->lp24_x1[0][j];
                         float x2_left = self->lp24_x2[0][j];
                         float y1_left = self->lp24_y1[0][j];
@@ -918,17 +1190,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         float y1_right = self->lp24_y1[1][j];
                         float y2_right = self->lp24_y2[1][j];
                         
-                        // Process left channel
                         float temp_out_left = self->lp24_b0[j] * left_signal + self->lp24_b1[j] * x1_left + 
                                             self->lp24_b2[j] * x2_left - self->lp24_a1[j] * y1_left - 
                                             self->lp24_a2[j] * y2_left;
                         
-                        // Process right channel
                         float temp_out_right = self->lp24_b0[j] * right_signal + self->lp24_b1[j] * x1_right + 
                                              self->lp24_b2[j] * x2_right - self->lp24_a1[j] * y1_right - 
                                              self->lp24_a2[j] * y2_right;
                         
-                        // Update state variables
                         self->lp24_x2[0][j] = x1_left;
                         self->lp24_x1[0][j] = left_signal;
                         self->lp24_y2[0][j] = y1_left;
@@ -946,7 +1215,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     
                 case 0:  // -12dB variable LPF
                 default:
-                    // STATE OPTIMIZATION
                     float x1_left = self->lp12_x1[0];
                     float x2_left = self->lp12_x2[0];
                     float y1_left = self->lp12_y1[0];
@@ -957,17 +1225,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     float y1_right = self->lp12_y1[1];
                     float y2_right = self->lp12_y2[1];
                     
-                    // Process left channel
                     float temp_out_left = self->lp12_b0 * left_signal + self->lp12_b1 * x1_left + 
                                         self->lp12_b2 * x2_left - self->lp12_a1 * y1_left - 
                                         self->lp12_a2 * y2_left;
                     
-                    // Process right channel
                     float temp_out_right = self->lp12_b0 * right_signal + self->lp12_b1 * x1_right + 
                                          self->lp12_b2 * x2_right - self->lp12_a1 * y1_right - 
                                          self->lp12_a2 * y2_right;
                     
-                    // Update state variables
                     self->lp12_x2[0] = x1_left;
                     self->lp12_x1[0] = left_signal;
                     self->lp12_y2[0] = y1_left;
@@ -983,6 +1248,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     break;
             }
         }
+        
         // Store both channels
         self->output_left[i] = left_signal;
         self->output_right[i] = right_signal;
