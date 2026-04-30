@@ -21,7 +21,7 @@
     doap:license <http://spdx.org/licenses/GPL-2.0-or-later> ;  
     doap:description "Dual filter plugin with independent high-pass and low-pass filters." ;
     rdfs:label "Dilophilter" ;
-    rdfs:comment "Dilophilter V1.1.0" ;
+    rdfs:comment "Dilophilter v1.1.0" ;
     lv2:port [
         a lv2:AudioPort, lv2:InputPort ;
         lv2:index 0 ;
