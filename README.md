@@ -56,14 +56,11 @@ sudo pacman -S base-devel lv2
    git clone https://github.com/simdott/dilophilter
    cd dilophilter
 
-2. Make the install script executable :
-   chmod +x install.sh
-
-3. Install for current user (recommended) :
-   ./install.sh
+2. Install for current user (recommended) :
+   sh install.sh
    
    Or install system-wide (requires sudo) :
-   sudo ./install.sh
+   sudo sh install.sh
 
 ## Verification
 
@@ -112,14 +109,13 @@ Aliasing may occur near Nyquist with high cutoff frequencies.
 
 ## Uninstall
 
-1. Make the uninstall script executable :
-   chmod +x uninstall.sh
+1. Open a terminal in the plugin's folder
 
 2. Uninstall for current user :
-   ./uninstall.sh
-   
+   sh uninstall.sh
+
    Or uninstall system-wide :
-   sudo ./uninstall.sh
+   sudo sh uninstall.sh
    
 ## Latest Version
 
