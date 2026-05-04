@@ -16,7 +16,6 @@ Dual filter plugin with independent high-pass and low-pass filters, designed for
   - Classic -48dB/octave
   - Butterworth -24dB/octave
   - Butterworth -48dB/octave
-  - Linkwitz-Riley -24dB/octave
   - Linkwitz-Riley -48dB/octave
   - Linkwitz-Riley -96dB/octave
 - Adjustable cutoff frequency (20Hz-20kHz)
