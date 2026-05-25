@@ -1,5 +1,5 @@
 # Dilophilter LV2 Plugin
-Dual filter plugin with independent high-pass and low-pass filters, designed for low CPU. Multiple slope options for Classic, Butterworth and Linkwitz-Riley filter responses.
+Dual filter plugin with independent high-pass and low-pass filters, designed for low CPU. Multiple slope options for Classic, Butterworth and Linkwitz-Riley filter responses, plus Low-Shelf and High-Shelf modes.
 
 ![Plugin Screenshot](images/dilophilter-ardour.png)
  
@@ -18,8 +18,11 @@ Dual filter plugin with independent high-pass and low-pass filters, designed for
   - Butterworth -48dB/octave
   - Linkwitz-Riley -48dB/octave
   - Linkwitz-Riley -96dB/octave
+  - High-Shelf (with adjustable Gain)
+  - Low-Shelf (with adjustable Gain)
 - Adjustable cutoff frequency (20Hz-20kHz)
-- Resonance/Q control for Classic modes (from 0.1 to 5.0)
+- Resonance/Q control for Classic modes and Shelves
+- Gain control (-12dB to +12dB) for Shelf filters
 - Butterworth and Linkwitz-Riley modes ignore resonance
 - No custom GUI — uses host's generic controls
 - Stereo input/output
@@ -78,13 +81,23 @@ Each filter operates independently :
 - **Low-Pass Filter (LPF)** : Use Slope, Cutoff, and Q controls to shape the high end
 
 **Classic modes** : Resonance (Q) shapes the filter's response at the cutoff frequency ;
-- **Low Q values (<0.707)** : Gentle, broad filter
-- **Q=0.707** : Standard flat response
-- **High Q values (>0.707)** : Resonant peak, more pronounced as Q increases
+- **Low Q values (<50%)** : Gentle, broad filter
+- **50%** : Standard flat response (Q=0.707)
+- **High Q values (>50%)** : Resonant peak, more pronounced as Q increases
 
 **Butterworth modes** : Provide flat passband response. Individual low-pass and high-pass outputs are -3dB at cutoff. **Q control has no effect in these modes**.
 
 **Linkwitz-Riley modes** : Provide flat summed response for crossover applications. Individual low-pass and high-pass outputs are -6dB at cutoff. **Q control has no effect**.
+
+**High-Shelf/Low-Shelf** : 
+- **Low-Shelf** : Boosts/cuts below cutoff frequency
+- **High-Shelf** : Boosts/cuts above cutoff frequency
+- **Cutoff** : Transition frequency
+- **Gain** : Amount of boost/cut (-12dB to +12dB)
+- **Q (Resonance)** : Steepness of the shelf transition (0% to 100%)
+  - 0% = Very gentle slope (Q=0.3)
+  - 50% = Classic Butterworth slope (default - Q=0.707)
+  - 100% = Steep, aggressive slope (Q=1.5)
 
 **To bypass a filter** : Set its Slope control to "Off".
 
@@ -94,6 +107,7 @@ Each filter operates independently :
 If precise logarithmic control in Carla is important to you, please let me know by opening an issue — this helps me prioritize a custom GUI in the future.
 
 ## Technical Notes
+
 All filters implemented as IIR biquad cascades.
 Designed for minimal CPU usage (no oversampling and phase response is non-linear) while providing versatile filter options.
 Aliasing may occur near Nyquist with high cutoff frequencies.
@@ -118,11 +132,17 @@ Aliasing may occur near Nyquist with high cutoff frequencies.
    
 ## Latest Version
 
-- v1.1.0 (2026-05-01) - Linkwitz-Riley -24dB/oct, -48dB/oct and -96dB/oct filter slopes added
+- v1.2.0 (2026-05-25) 
+  - High-Shelf and Low-Shelf filter slopes added. 
+  - Resonance parameters changed to relative values (%).
+  - Resonance ranges redefined per slope type with relative 0-100% scaling.
 
-### Older Version
+### Older Versions
 
-- v1.0.0 (2026-03-05) - Initial release   
+- v1.1.0 (2026-05-01) 
+  - Linkwitz-Riley -24dB/oct, -48dB/oct and -96dB/oct filter slopes added.
+- v1.0.0 (2026-03-05) 
+  - Initial release. 
 
 ## License
 
